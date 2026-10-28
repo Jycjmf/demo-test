@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>车机浏览器测试</title>
+</head>
+<body>
+
+<h2>极氪浏览器功能测试</h2>
+
+<button onclick="alert('JavaScript正常')">
+测试1：JavaScript
+</button>
+
+<br><br>
+
+<button onclick="testBlob()">
+测试2：Blob下载
+</button>
+
+<br><br>
+
+<a href="market://details?id=com.netease.cloudmusic.iot">
+测试3：打开应用商店
+</a>
+
+<br><br>
+
+<a href="intent://details?id=com.netease.cloudmusic.iot#Intent;scheme=market;end">
+测试4：Intent调用
+</a>
+
+<script>
+function testBlob() {
+    const blob = new Blob(
+        ["Hello Zeekr!"],
+        {type: "text/plain"}
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "test.txt";
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+    }, 30000);
+}
+</script>
+
+</body>
+</html>
