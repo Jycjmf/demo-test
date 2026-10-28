@@ -1,57 +1,191 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<title>车机浏览器测试</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3">
+  <title>极氪车机 Intent 综合测试台</title>
+  <style>
+    *{box-sizing:border-box}html{background:#0b1220;color:#e6edf7;-webkit-text-size-adjust:100%}
+    body{font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;margin:0;line-height:1.55}
+    .wrap{max-width:1180px;margin:auto;padding:20px 18px 80px}
+    h1{font-size:29px;margin:10px 0 8px}h2{font-size:20px;margin:0 0 14px}h3{font-size:17px;margin:0 0 7px}
+    p{margin:8px 0 12px}.subtitle,.hint{color:#a7b6cc}.hint{font-size:13px}
+    .panel,.category{background:#131e31;border:1px solid #2b3b54;border-radius:14px;padding:17px;margin-top:17px}
+    .notice{background:#18314a;border-left:4px solid #69c6ff;padding:11px 14px;border-radius:8px}
+    .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+    input,textarea{background:#081321;color:#f1f6ff;border:1px solid #536782;border-radius:8px;padding:11px 12px;font:15px/1.4 inherit;width:100%;min-height:45px}
+    input:focus,textarea:focus{outline:2px solid #57b6ff;outline-offset:1px}
+    .actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+    button,.testbtn{display:inline-flex;align-items:center;justify-content:center;min-height:45px;border:0;border-radius:8px;padding:9px 14px;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none}
+    button{background:#324967;color:#eaf3ff}.testbtn{background:#2282e4;color:white}
+    .testbtn:active,button:active{filter:brightness(1.2)}.disabled{opacity:.45;pointer-events:none}
+    .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .card{background:#0c1829;border:1px solid #304059;border-radius:10px;padding:15px;min-width:0}
+    .desc{font-size:13px;color:#9fb4d1;min-height:40px}
+    .kind{font-size:11px;display:inline-block;border:1px solid #7b8fac;border-radius:5px;padding:1px 6px;color:#b8ccec;margin-bottom:7px}
+    .uri{font-family:Consolas,Monaco,monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-all;border-radius:7px;border:1px solid #263a55;background:#07101e;padding:10px;margin:12px 0;min-height:47px;user-select:text;-webkit-user-select:text}
+    .cardbuttons{display:flex;flex-wrap:wrap;gap:7px}.copybtn{min-height:45px}
+    .groupnote{font-size:13px;color:#9fb4d1;margin:0 0 14px}
+    .filters{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.filter{font-size:13px;min-height:39px}
+    .filter.active{background:#3189e3;color:white}
+    .small{font-size:13px;color:#a6b9d0}.good{color:#73e2b0}.warn{color:#ffd17e}
+    .log{height:145px;resize:vertical;white-space:pre;overflow:auto;font-family:Consolas,monospace;font-size:13px}
+    .result{background:#0d2030;border:1px solid #2c6477;padding:11px 12px;border-radius:8px;min-height:48px}
+    @media(max-width:740px){.wrap{padding:14px 10px 50px}h1{font-size:23px}.cards,.fields{grid-template-columns:1fr}.panel,.category{padding:13px}.card{padding:13px}}
+  </style>
 </head>
 <body>
+<div class="wrap">
+  <h1>🚗 极氪 Android Intent 综合测试台</h1>
+  <p class="subtitle">离线单页 · 可部署 GitHub Pages · 不依赖内网 IP · 浏览器兼容性实验</p>
+  <p class="notice"><strong>先看这里：</strong>请停车后测试。每一项都需要你亲自点击；“点击测试”只表示发起了跳转，<strong>不代表调用成功</strong>。多数系统设置/文件管理 Activity 未声明 BROWSABLE，即使 URI 正确也可能无法从浏览器打开。APK 安装还需要文件可访问、系统安装许可和用户确认。</p>
 
-<h2>极氪浏览器功能测试</h2>
+  <div class="panel">
+    <h2>🔧 测试参数</h2>
+    <div class="fields">
+      <div><label for="pkg">目标 APP 包名</label><input id="pkg" value="com.netease.cloudmusic.iot" spellcheck="false"><div class="hint">用于商店详情、应用信息和启动尝试。</div></div>
+      <div><label for="browserPkg">当前浏览器包名（选填）</label><input id="browserPkg" placeholder="例如 com.android.browser" spellcheck="false"><div class="hint">设置“允许安装未知应用”时应填写下载来源应用的真实包名；留空可使用通用设置入口。</div></div>
+      <div><label for="apkUrl">公网 APK 直链（选填）</label><input id="apkUrl" placeholder="https://example.com/example.apk" spellcheck="false"><div class="hint">仅支持 HTTP(S)，车机无法访问内网时请使用公网 HTTPS 直链。</div></div>
+      <div><label for="contentUri">已有 APK 的 content:// URI（进阶，可选）</label><input id="contentUri" placeholder="content://provider/path/app.apk" spellcheck="false"><div class="hint">需要已经存在且调用方有权读取的真实 URI；网页不能凭空创建可授权的本地 APK 文件。</div></div>
+    </div>
+    <div class="actions"><button id="apply">🔄 更新全部链接</button><button id="jsTest">🧪 测试 JS 弹窗</button><button id="blobTest">📄 测试 Blob 下载</button></div>
+    <p class="small">当前浏览器 UA：<span id="ua"></span></p>
+  </div>
 
-<button onclick="alert('JavaScript正常')">
-测试1：JavaScript
-</button>
+  <div class="panel">
+    <h2>🔎 筛选测试项目</h2>
+    <input id="search" placeholder="搜索：安装、设置、商店、文件、微信..." autocomplete="off">
+    <div id="filters" class="filters"></div>
+    <p class="small" id="count"></p>
+  </div>
 
-<br><br>
+  <div id="tests"></div>
 
-<button onclick="testBlob()">
-测试2：Blob下载
-</button>
+  <div class="panel">
+    <h2>🧰 自定义 URI 测试</h2>
+    <p class="hint">支持 intent:、market:、tel:、sms:、mailto:、geo:、https: 等。普通 URL 不会自动生成系统权限。</p>
+    <label for="customUri">输入完整的 URI</label>
+    <textarea id="customUri" rows="3" spellcheck="false">intent://details?id=com.netease.cloudmusic.iot#Intent;scheme=market;end</textarea>
+    <div class="actions"><a id="customLink" class="testbtn" href="intent://details?id=com.netease.cloudmusic.iot#Intent;scheme=market;end">▶ 直接点击测试</a><button id="copyCustom">📋 复制 URI</button></div>
+  </div>
 
-<br><br>
-
-<a href="market://details?id=com.netease.cloudmusic.iot">
-测试3：打开应用商店
-</a>
-
-<br><br>
-
-<a href="intent://details?id=com.netease.cloudmusic.iot#Intent;scheme=market;end">
-测试4：Intent调用
-</a>
-
+  <div class="panel">
+    <h2>📝 手动记录测试结果</h2>
+    <p class="hint">网页无法可靠判断外部 Activity 是否成功启动。测试后返回页面，手动标记刚才的结果；记录只存在于当前页面，刷新会丢失。</p>
+    <div class="actions"><button id="ok">✅ 已成功打开</button><button id="blocked">🚫 被浏览器阻止</button><button id="noeffect">❌ 无反应/找不到应用</button><button id="copyLog">📋 复制日志</button><button id="clearLog">🗑 清空</button></div>
+    <p id="status" class="result">尚未测试</p>
+    <textarea id="log" class="log" readonly></textarea>
+  </div>
+  <p class="hint">技术参考：Chrome Android Intent URI 文档、Android Settings / Intent 官方 API。此页面不会自动安装软件，也不会在后台扫描车机应用。</p>
+</div>
 <script>
-function testBlob() {
-    const blob = new Blob(
-        ["Hello Zeekr!"],
-        {type: "text/plain"}
-    );
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id);};
+var groups=[
+ {name:'📦 应用商店与应用启动',id:'market',note:'优先测试：有时应用商店可独立完成下载/安装；直接指定包名不等于能打开任意 APP。'},
+ {name:'🛠 APK 下载与安装入口',id:'install',note:'高度实验性：APK 不能只凭 HTTPS URL 交给 Package Installer；安装通常需要可读取的 content:// URI 和系统授权。'},
+ {name:'📁 文件管理与文件选择器',id:'files',note:'ACTION_GET_CONTENT / OPEN_DOCUMENT 是 Android 标准动作，但从浏览器发起常被 BROWSABLE 规则拦截。'},
+ {name:'⚙️ 系统设置',id:'settings',note:'这些动作是 Android 标准 Action，并不代表极氪车机向网页开放了对应页面。'},
+ {name:'📱 常见第三方 App Scheme',id:'apps',note:'仅在对应 APP 已安装且暴露了浏览器可访问的处理器时有效。'},
+ {name:'🌐 通信、地图与浏览器',id:'misc',note:'作为对照组，判断车机是否整体屏蔽外部协议跳转。'}
+];
+function settings(s){return 'intent:#Intent;action=android.settings.'+s+';end';}
+function action(s,t,extra){return 'intent:#Intent;action='+s+(t?';type='+t:'')+(extra?';'+extra:'')+';end';}
+function packageUri(p,act){return 'intent:'+p+'#Intent;scheme=package;action='+act+';end';}
+function uriContent(c,act){return 'intent:'+c.substring(8)+'#Intent;scheme=content;action='+act+';type=application/vnd.android.package-archive;end';}
+function toIntentApk(u){var m=/^(https?):\/\/(.+)$/i.exec(u);if(!m)return '';return 'intent://'+m[2].split('#')[0]+'#Intent;scheme='+m[1].toLowerCase()+';action=android.intent.action.VIEW;type=application/vnd.android.package-archive;end';}
+function validPackage(s){return /^[A-Za-z_][A-Za-z_0-9]*(\.[A-Za-z_][A-Za-z_0-9]*)+$/.test(s);}
+function params(){return {pkg:$('pkg').value.trim(),browser:$('browserPkg').value.trim(),apk:$('apkUrl').value.trim(),content:$('contentUri').value.trim()};}
+var items=[
+ {g:'market',title:'Market：应用详情',tip:'系统有没有能处理 market:// 的应用商店？',f:function(p){return 'market://details?id='+encodeURIComponent(p.pkg);}},
+ {g:'market',title:'Market：搜索应用',tip:'测试商店是否支持关键词搜索。',f:function(p){return 'market://search?q='+encodeURIComponent('网易云音乐');}},
+ {g:'market',title:'Intent：Market 详情',tip:'使用 intent:// 加 scheme=market。',f:function(p){return 'intent://details?id='+encodeURIComponent(p.pkg)+'#Intent;scheme=market;end';}},
+ {g:'market',title:'Intent：Market 搜索',tip:'与上面的链接等效，但走 Chrome 风格 Intent URI。',f:function(p){return 'intent://search?q='+encodeURIComponent('网易云音乐')+'#Intent;scheme=market;end';}},
+ {g:'market',title:'指定 Google Play',tip:'只有安装 Google Play 的设备才可能处理；多数国内车机没有。',f:function(p){return 'intent://details?id='+encodeURIComponent(p.pkg)+'#Intent;scheme=market;package=com.android.vending;end';}},
+ {g:'market',title:'按包名启动（实验）',tip:'MAIN + LAUNCHER 的普通入口一般不能由浏览器直接调用。',tag:'实验',f:function(p){return 'intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package='+p.pkg+';end';}},
+ {g:'market',title:'仅指定包名（实验）',tip:'没有 ACTION/DATA 的 Intent 大概率不会匹配；用于观察浏览器反应。',tag:'实验',f:function(p){return 'intent:#Intent;package='+p.pkg+';end';}},
 
-    const url = URL.createObjectURL(blob);
+ {g:'install',title:'直接打开公网 APK URL',tip:'测试浏览器对 APK 直链的下载拦截行为（需要填写 URL）。',needs:'apk',f:function(p){return /^https?:\/\/\S+$/i.test(p.apk)?p.apk:'';}},
+ {g:'install',title:'HTTP(S) APK VIEW Intent（实验）',tip:'将公网 APK URL 包装成 VIEW Intent；通常不会直接触发安装。',tag:'实验',needs:'apk',f:function(p){return toIntentApk(p.apk);}},
+ {g:'install',title:'已存在 APK：VIEW（实验）',tip:'使用实际 content:// URI 和 APK MIME；须有读取授权。',tag:'实验',needs:'content',f:function(p){return /^content:\/\/\S+$/i.test(p.content)?uriContent(p.content,'android.intent.action.VIEW'):'';}},
+ {g:'install',title:'已存在 APK：INSTALL_PACKAGE（实验）',tip:'旧式安装 Action 已被废弃；缺乏必要授权时不会安装。',tag:'实验',needs:'content',f:function(p){return /^content:\/\/\S+$/i.test(p.content)?uriContent(p.content,'android.intent.action.INSTALL_PACKAGE'):'';}},
+ {g:'install',title:'未知来源安装设置（通用）',tip:'尝试打开“安装未知应用”管理页面。',f:function(){return settings('MANAGE_UNKNOWN_APP_SOURCES');}},
+ {g:'install',title:'未知来源安装设置（指定来源）',tip:'填写真实浏览器包名后，尝试打开该来源的安装权限页。',needs:'browser',f:function(p){return validPackage(p.browser)?packageUri(p.browser,'android.settings.MANAGE_UNKNOWN_APP_SOURCES'):'';}},
+ {g:'install',title:'安全设置',tip:'系统整体安全设置，可能没有对应页面。',f:function(){return settings('SECURITY_SETTINGS');}},
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "test.txt";
+ {g:'files',title:'GET_CONTENT：选择任意文件',tip:'Android 标准文件选择请求；不等于可访问任意目录。',f:function(){return action('android.intent.action.GET_CONTENT','*/*','category=android.intent.category.OPENABLE');}},
+ {g:'files',title:'OPEN_DOCUMENT：打开文件',tip:'Android DocumentsUI 标准选择请求。',f:function(){return action('android.intent.action.OPEN_DOCUMENT','*/*','category=android.intent.category.OPENABLE');}},
+ {g:'files',title:'GET_CONTENT：仅 APK',tip:'仅请求 APK MIME 的现有文件，不会下载。',f:function(){return action('android.intent.action.GET_CONTENT','application/vnd.android.package-archive','category=android.intent.category.OPENABLE');}},
+ {g:'files',title:'OPEN_DOCUMENT：仅 APK',tip:'在已存在的本地文件中请求选择 APK。',f:function(){return action('android.intent.action.OPEN_DOCUMENT','application/vnd.android.package-archive','category=android.intent.category.OPENABLE');}},
+ {g:'files',title:'GET_CONTENT：图片',tip:'普通图片选择器对照测试。',f:function(){return action('android.intent.action.GET_CONTENT','image/*','category=android.intent.category.OPENABLE');}},
+ {g:'files',title:'OPEN_DOCUMENT：图片',tip:'DocumentsUI 图片选择器。',f:function(){return action('android.intent.action.OPEN_DOCUMENT','image/*','category=android.intent.category.OPENABLE');}},
+ {g:'files',title:'系统文件选择（DocumentsUI 实验）',tip:'通过 DocumentsUI 包名指定标准 OPEN_DOCUMENT；可能受浏览器限制。',tag:'实验',f:function(){return 'intent:#Intent;action=android.intent.action.OPEN_DOCUMENT;category=android.intent.category.OPENABLE;type=*/*;package=com.google.android.documentsui;end';}},
+ {g:'files',title:'AOSP DocumentsUI（实验）',tip:'另一个常见 DocumentsUI 包名，不保证存在。',tag:'实验',f:function(){return 'intent:#Intent;action=android.intent.action.OPEN_DOCUMENT;category=android.intent.category.OPENABLE;type=*/*;package=com.android.documentsui;end';}},
 
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+ {g:'settings',title:'设置主页',tip:'android.settings.SETTINGS',f:function(){return settings('SETTINGS');}},
+ {g:'settings',title:'目标 APP 详情',tip:'根据顶部目标包名查看 APP 信息。',f:function(p){return packageUri(p.pkg,'android.settings.APPLICATION_DETAILS_SETTINGS');}},
+ {g:'settings',title:'应用列表',tip:'android.settings.APPLICATION_SETTINGS',f:function(){return settings('APPLICATION_SETTINGS');}},
+ {g:'settings',title:'管理全部应用',tip:'android.settings.MANAGE_APPLICATIONS_SETTINGS',f:function(){return settings('MANAGE_APPLICATIONS_SETTINGS');}},
+ {g:'settings',title:'Wi‑Fi 设置',tip:'android.settings.WIFI_SETTINGS',f:function(){return settings('WIFI_SETTINGS');}},
+ {g:'settings',title:'蓝牙设置',tip:'android.settings.BLUETOOTH_SETTINGS',f:function(){return settings('BLUETOOTH_SETTINGS');}},
+ {g:'settings',title:'存储设置',tip:'android.settings.INTERNAL_STORAGE_SETTINGS',f:function(){return settings('INTERNAL_STORAGE_SETTINGS');}},
+ {g:'settings',title:'开发者选项',tip:'android.settings.APPLICATION_DEVELOPMENT_SETTINGS',f:function(){return settings('APPLICATION_DEVELOPMENT_SETTINGS');}},
+ {g:'settings',title:'关于设备',tip:'android.settings.DEVICE_INFO_SETTINGS',f:function(){return settings('DEVICE_INFO_SETTINGS');}},
+ {g:'settings',title:'无障碍设置',tip:'android.settings.ACCESSIBILITY_SETTINGS',f:function(){return settings('ACCESSIBILITY_SETTINGS');}},
+ {g:'settings',title:'显示设置',tip:'android.settings.DISPLAY_SETTINGS',f:function(){return settings('DISPLAY_SETTINGS');}},
+ {g:'settings',title:'时间与日期设置',tip:'android.settings.DATE_SETTINGS',f:function(){return settings('DATE_SETTINGS');}},
+ {g:'settings',title:'声音设置',tip:'android.settings.SOUND_SETTINGS',f:function(){return settings('SOUND_SETTINGS');}},
+ {g:'settings',title:'通知设置',tip:'android.settings.NOTIFICATION_SETTINGS',f:function(){return settings('NOTIFICATION_SETTINGS');}},
 
-    setTimeout(() => {
-        URL.revokeObjectURL(url);
-    }, 30000);
-}
+ {g:'apps',title:'微信 weixin://',tip:'安装微信且注册相应 Scheme 才可能打开。',f:function(){return 'weixin://';}},
+ {g:'apps',title:'支付宝 alipays://',tip:'只尝试打开支付宝应用，不执行支付。',f:function(){return 'alipays://';}},
+ {g:'apps',title:'QQ mqq://',tip:'尝试打开 QQ。',f:function(){return 'mqq://';}},
+ {g:'apps',title:'高德地图 amapuri://',tip:'尝试打开高德地图。',f:function(){return 'amapuri://';}},
+ {g:'apps',title:'百度地图 baidumap://',tip:'尝试打开百度地图。',f:function(){return 'baidumap://';}},
+ {g:'apps',title:'淘宝 taobao://',tip:'尝试打开淘宝。',f:function(){return 'taobao://';}},
+ {g:'apps',title:'网易云 orpheus://（实验）',tip:'网易云音乐历史 Scheme；车机定制版不一定支持。',tag:'实验',f:function(){return 'orpheus://';}},
+ {g:'apps',title:'扫码 ZXing Intent',tip:'Chrome 官方文档中的示例，需安装对应扫码 APP。',f:function(){return 'intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end';}},
+
+ {g:'misc',title:'拨号 tel:',tip:'仅打开拨号界面；可能受车机驾驶安全限制。',f:function(){return 'tel:10086';}},
+ {g:'misc',title:'短信 sms:',tip:'仅打开短信编辑界面，不会自动发送。',f:function(){return 'sms:10086';}},
+ {g:'misc',title:'邮件 mailto:',tip:'测试邮件客户端 Scheme。',f:function(){return 'mailto:test@example.com?subject=Zeekr%20Intent%20Test';}},
+ {g:'misc',title:'地图 geo:',tip:'Android 地图应用常用 Scheme。',f:function(){return 'geo:0,0?q=Beijing';}},
+ {g:'misc',title:'Intent：地图 geo',tip:'使用 intent:// 包装地图 URI。',f:function(){return 'intent:0,0?q=Beijing#Intent;scheme=geo;end';}},
+ {g:'misc',title:'HTTPS 浏览器跳转',tip:'对照组：普通公网 HTTPS 导航。',f:function(){return 'https://www.example.com/';}},
+ {g:'misc',title:'Intent：HTTPS VIEW',tip:'尝试交给其他浏览器或能处理 https 的 APP。',f:function(){return 'intent://www.example.com/#Intent;scheme=https;action=android.intent.action.VIEW;end';}}
+];
+var latest='';var currentGroup='all';var logs=[];
+function addLog(s){var d=new Date();var t=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+':'+('0'+d.getSeconds()).slice(-2);logs.push('['+t+'] '+s);$('log').value=logs.join('\n');$('log').scrollTop=$('log').scrollHeight;}
+function start(t,u){latest=t;$('status').textContent='最近点击：'+t+'。请返回本页面标记实际结果。';addLog('尝试：'+t+' | '+u);}
+function copy(s){var ta=document.createElement('textarea');ta.value=s;ta.style.position='fixed';ta.style.left='-99999px';document.body.appendChild(ta);ta.focus();ta.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(ta);$('status').textContent=ok?'已复制到剪贴板':'浏览器不允许自动复制，请长按 URI 或日志手动复制';}
+function make(tag,cls,text){var node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;}
+function groupButtons(){var nav=$('filters');for(var i=0;i<groups.length+1;i++){(function(index){var id=index===0?'all':groups[index-1].id;var label=index===0?'全部项目':groups[index-1].name;var b=make('button','filter'+(index===0?' active':''),label);b.type='button';b.onclick=function(){currentGroup=id;var arr=nav.getElementsByTagName('button');for(var k=0;k<arr.length;k++)arr[k].className='filter'+(k===index?' active':'');render();};nav.appendChild(b);})(i);}}
+function render(){var container=$('tests');while(container.firstChild)container.removeChild(container.firstChild);var p=params();var q=$('search').value.toLowerCase().trim();var total=0;
+ for(var gi=0;gi<groups.length;gi++){var g=groups[gi];if(currentGroup!=='all'&&currentGroup!==g.id)continue;
+ var sec=make('section','category');var header=make('h2','',g.name);sec.appendChild(header);sec.appendChild(make('p','groupnote',g.note));var cards=make('div','cards');var shown=0;
+ for(var j=0;j<items.length;j++){(function(t){if(t.g!==g.id)return;if(q&&(t.title+' '+t.tip+' '+g.name).toLowerCase().indexOf(q)<0)return;
+ var u=t.f(p);if(!validPackage(p.pkg)&&t.g==='market'&&(t.title.indexOf('Market')>=0||t.title.indexOf('包名')>=0))u='';
+ var card=make('div','card');if(t.tag)card.appendChild(make('span','kind',t.tag));card.appendChild(make('h3','',t.title));card.appendChild(make('div','desc',t.tip));var view=make('div','uri',u||'请填写上方参数后点击「更新全部链接」');card.appendChild(view);
+ var row=make('div','cardbuttons');var link=make('a','testbtn'+(u?'':' disabled'),'▶ 点击测试');if(u)link.setAttribute('href',u);else link.setAttribute('aria-disabled','true');link.onclick=function(){if(!u)return false;start(t.title,u);return true;};row.appendChild(link);
+ var b=make('button','copybtn','复制 URI');b.disabled=!u;b.onclick=function(){copy(u);};row.appendChild(b);card.appendChild(row);cards.appendChild(card);total++;shown++;
+ })(items[j]);}
+ if(shown){sec.appendChild(cards);container.appendChild(sec);}}
+ $('count').textContent='当前显示 '+total+' / '+items.length+' 项。点击后的成功与否需要你手动确认。';}
+function record(s){if(!latest){$('status').textContent='请先点击一个测试项';return;}addLog('结果：'+latest+' => '+s);$('status').textContent='已记录 '+latest+'：'+s;}
+$('ua').textContent=navigator.userAgent||'无法获取';
+$('apply').onclick=render;$('search').oninput=render;
+$('jsTest').onclick=function(){start('JavaScript alert','alert(123)');alert('JavaScript 正常运行：123');};
+$('blobTest').onclick=function(){start('Blob 下载文本','blob: 生成 test.txt');try{var blob=new Blob(['Hello Zeekr Intent Test\n'],{type:'text/plain'});var u=(window.URL||window.webkitURL).createObjectURL(blob);var a=document.createElement('a');a.href=u;a.download='zeekr-test.txt';a.textContent='临时下载';a.style.display='none';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){(window.URL||window.webkitURL).revokeObjectURL(u);},30000);}catch(e){$('status').textContent='Blob 测试 JS 报错：'+e.message;addLog('JS 报错：'+e.message);}};
+$('ok').onclick=function(){record('成功打开');};$('blocked').onclick=function(){record('被浏览器阻止');};$('noeffect').onclick=function(){record('无反应/没有处理应用');};
+$('copyLog').onclick=function(){copy($('log').value);};$('clearLog').onclick=function(){logs=[];$('log').value='';latest='';$('status').textContent='日志已清空';};
+function customSync(){var s=$('customUri').value.trim();var link=$('customLink');if(/^(intent|market|tel|sms|mailto|geo|https?):/i.test(s)){link.href=s;link.className='testbtn';}else{link.removeAttribute('href');link.className='testbtn disabled';}}
+$('customUri').oninput=customSync;
+$('customLink').onclick=function(){var u=$('customUri').value.trim();if(!/^(intent|market|tel|sms|mailto|geo|https?):/i.test(u))return false;start('自定义 URI',u);return true;};
+$('copyCustom').onclick=function(){copy($('customUri').value);};
+groupButtons();render();customSync();
+})();
 </script>
-
 </body>
 </html>
