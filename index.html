@@ -94,6 +94,22 @@
     <p class="hint">如果显示“Service Worker 未控制本页”，请等页面出现“准备就绪”，或手动刷新一次。如果车机浏览器不支持 Service Worker，这组测试无法运行。不要把打开了新标签或点击成功当作已保存文件。</p>
   </section>
 
+
+  <section class="panel" id="handoffLab">
+    <h2>🔬 第三轮：绕开普通下载入口的文件转交 API</h2>
+    <p class="hint">基于 APK 静态分析：二维码保存走内部 Bitmap 下载，而普通 APK 下载会被 Automotive 拦截。此处测试两种<strong>网页标准 API</strong>：Web Share（交给其他应用）与 File System Access（浏览器选择路径保存）；并尝试内部下载页。仅生成很小的无害测试文件，<strong>不是可安装 APK</strong>。</p>
+    <p id="handoffStatus" class="result" aria-live="polite">等待检测。所有操作都要你亲自点击；结果会写入下方测试日志。</p>
+    <div class="cards" style="margin-top:14px">
+      <div class="card"><span class="kind">能力检查</span><h3>⑬ 检测 Web Share / 文件保存能力</h3><div class="desc">检查 navigator.share、navigator.canShare、File、showSaveFilePicker 是否存在，不写入任何文件。</div><div class="cardbuttons"><button class="testbtn" type="button" id="handoffCheck">▶ 检测能力</button></div></div>
+      <div class="card"><span class="kind">Web Share</span><h3>⑭ 用系统分享面板转交 PNG</h3><div class="desc">将一张真实的 1×1 PNG 用 navigator.share({files}) 交给系统，观察是否出现接收应用。</div><div class="cardbuttons"><button class="testbtn" type="button" id="handoffPng">▶ 分享 PNG 文件</button></div></div>
+      <div class="card"><span class="kind">Web Share</span><h3>⑮ 用系统分享面板转交 .apk</h3><div class="desc">提交只有几十字节的<strong>假 APK</strong> 文件对象，检查系统是否接受这种类型的文件分享。</div><div class="cardbuttons"><button class="testbtn" type="button" id="handoffApk">▶ 分享测试 .apk</button></div></div>
+      <div class="card"><span class="kind">文件保存</span><h3>⑯ File System Access 保存为 .apk</h3><div class="desc">如果支持 showSaveFilePicker，尝试选择保存位置并写入无害测试文本。不是 APK 安装。</div><div class="cardbuttons"><button class="testbtn" type="button" id="handoffPicker">▶ 选择文件保存位置</button></div></div>
+      <div class="card"><span class="kind">浏览器内部</span><h3>⑰ chrome-native://downloads/</h3><div class="desc">APK 中 DownloadUtils.showDownloadManager() 使用的内部地址。测试是否能够从网页直接打开。</div><div class="cardbuttons"><a href="chrome-native://downloads/" class="testbtn" data-handoff-link="⑰ chrome-native 内部下载管理">▶ 打开内部下载页</a></div></div>
+      <div class="card"><span class="kind">浏览器内部</span><h3>⑱ about:downloads</h3><div class="desc">测试另一种内部地址写法；如果直接搜索百度或没有反应，就视为未成功。</div><div class="cardbuttons"><a href="about:downloads" class="testbtn" data-handoff-link="⑱ about:downloads">▶ 打开 about:downloads</a></div></div>
+    </div>
+    <p class="hint">注意：Web Share API 可能只有文本分享，或者直接被车载策略禁用。即使支持文件分享，也需要存在可接收并保存文件的应用；分享成功不等于 APK 可以安装。File System Access 在 Android 车机上大概率不支持。</p>
+  </section>
+
   <div id="tests"></div>
 
   <div class="panel">
@@ -278,6 +294,57 @@ function wireServiceWorkerLab(){
  }
 }
 wireServiceWorkerLab();
+
+function wireHandoffLab(){
+ var out=$('handoffStatus');
+ function report(s){out.textContent=s;addLog('第三轮实验：'+s);}
+ function fileFor(kind){
+   if(typeof File==='undefined'||typeof Blob==='undefined')throw new Error('浏览器不支持 File/Blob');
+   if(kind==='png'){
+     var raw=atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==');
+     var bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+     return new File([bytes],'zeekr-webshare.png',{type:'image/png'});
+   }
+   return new File(['This is a harmless file API probe, not an APK.\\n'],'zeekr-webshare-test.apk',{type:'application/vnd.android.package-archive'});
+ }
+ $('handoffCheck').onclick=function(){
+   var parts=['secureContext='+!!window.isSecureContext,'File='+('File' in window),'navigator.share='+(typeof navigator.share),'navigator.canShare='+(typeof navigator.canShare),'showSaveFilePicker='+(typeof window.showSaveFilePicker)];
+   if(typeof navigator.canShare==='function'){
+     try{parts.push('canShare(PNG)='+navigator.canShare({files:[fileFor('png')]}));}catch(e){parts.push('canShare(PNG) error='+e.message);}
+     try{parts.push('canShare(APK)='+navigator.canShare({files:[fileFor('apk')]}));}catch(e){parts.push('canShare(APK) error='+e.message);}
+   }
+   start('⑬ 检测文件分享和文件保存 API','JavaScript feature detection');report(parts.join(' | '));
+ };
+ function shareKind(kind){
+   var name=kind==='png'?'⑭ Web Share PNG 文件':'⑮ Web Share 假 APK 文件';start(name,'navigator.share({files})');
+   var f;
+   try{f=fileFor(kind);}catch(e){report(name+'：构建 File 失败：'+e.message);return;}
+   if(typeof navigator.share!=='function'){report(name+'：❌ navigator.share 不可用');return;}
+   if(typeof navigator.canShare==='function'){
+     try{if(!navigator.canShare({files:[f]})){report(name+'：❌ navigator.canShare({files}) 返回 false');return;}}catch(e){report(name+'：canShare 报错：'+e.message);return;}
+   }
+   try{
+     navigator.share({files:[f],title:'Zeekr 文件分享测试'}).then(function(){report(name+'：✅ 分享 API 已返回成功，但仍需确认接收应用是否真正保存文件');},function(e){report(name+'：失败或取消：'+String(e.name||'Error')+'：'+String(e.message||e));});
+   }catch(e){report(name+'：调用失败：'+e.message);}
+ }
+ $('handoffPng').onclick=function(){shareKind('png');};
+ $('handoffApk').onclick=function(){shareKind('apk');};
+ $('handoffPicker').onclick=function(){
+   start('⑯ File System Access 保存假 APK','showSaveFilePicker');
+   if(typeof window.showSaveFilePicker!=='function'){report('⑯ ❌ showSaveFilePicker 不存在，此浏览器无法通过这个 API 直接选位置保存。');return;}
+   try{
+     window.showSaveFilePicker({suggestedName:'zeekr-file-picker-test.apk',types:[{description:'测试文件',accept:{'application/octet-stream':['.apk']}}]})
+      .then(function(handle){return handle.createWritable();})
+      .then(function(w){return w.write('Harmless file save test. Not an APK.\\n').then(function(){return w.close();});})
+      .then(function(){report('⑯ ✅ 已通过文件保存 API 写入无害测试数据，请确认选择的位置和文件名');})
+      .catch(function(e){report('⑯ 失败或取消：'+String(e.name||'Error')+' '+String(e.message||e));});
+   }catch(e){report('⑯ 调用失败：'+e.message);}
+ };
+ var links=document.querySelectorAll('[data-handoff-link]');
+ for(var i=0;i<links.length;i++){links[i].addEventListener('click',function(){start(this.getAttribute('data-handoff-link'),this.href);});}
+}
+wireHandoffLab();
+
 
 
 groupButtons();render();customSync();
