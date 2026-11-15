@@ -80,6 +80,20 @@
     <p class="hint">若你要验证“真正的 APK 字节 + 假 PNG HTTP 响应头”是否绕过拦截，需要一个能够自定义响应头的服务器；单靠 GitHub Pages 的 index.html 不能做这个严格实验。以上项目不修改车机或安装软件。</p>
   </section>
 
+
+  <section class="panel" id="swDownloadLab">
+    <h2>🧬 第二轮：真正的下载响应头模拟（Service Worker）</h2>
+    <p class="hint">新的实验不使用 Blob 的 a.download：由 Service Worker 拦截普通导航，向浏览器返回 <code>Content-Disposition: attachment</code>。这是<strong>浏览器本地合成响应</strong>，不是服务器直接修改 HTTP 头。所有测试仅使用同一份安全的 1×1 PNG 图片，不是真 APK。</p>
+    <p class="result" id="swStatus">正在检测 Service Worker 支持情况……</p>
+    <div class="cards" style="margin-top:14px">
+      <div class="card"><span class="kind">SW 基线</span><h3>⑨ PNG MIME + PNG 文件名</h3><div class="desc">响应头声明 image/png，attachment 下载名 .png。验证能否通过 Content-Disposition 强制保存。</div><div class="cardbuttons"><a class="testbtn" href="./sw-attachment/png-name-png" data-sw-test="⑨ PNG MIME + PNG 文件名">▶ 测试 PNG → PNG</a></div></div>
+      <div class="card"><span class="kind">SW 重点</span><h3>⑩ PNG MIME + APK 文件名 ⭐</h3><div class="desc">内容完全相同，仅把 Content-Disposition 文件名改成 .apk。用于检查是否按 MIME 或后缀拦截。</div><div class="cardbuttons"><a class="testbtn" href="./sw-attachment/png-name-apk" data-sw-test="⑩ PNG MIME + APK 文件名">▶ 测试 PNG → APK</a></div></div>
+      <div class="card"><span class="kind">SW 对照</span><h3>⑪ APK MIME + APK 文件名</h3><div class="desc">文件内容仍是 PNG，但响应头声明标准 APK MIME；与⑩对比，观察 MIME 差异。</div><div class="cardbuttons"><a class="testbtn" href="./sw-attachment/apk-name-apk" data-sw-test="⑪ APK MIME + APK 文件名">▶ 测试 APK → APK</a></div></div>
+      <div class="card"><span class="kind">SW 对照</span><h3>⑫ TXT MIME + APK 文件名</h3><div class="desc">保持 PNG 字节不变，仅修改 Content-Type 为 text/plain；进一步排除扩展名判断。</div><div class="cardbuttons"><a class="testbtn" href="./sw-attachment/text-name-apk" data-sw-test="⑫ TXT MIME + APK 文件名">▶ 测试 TXT → APK</a></div></div>
+    </div>
+    <p class="hint">如果显示“Service Worker 未控制本页”，请等页面出现“准备就绪”，或手动刷新一次。如果车机浏览器不支持 Service Worker，这组测试无法运行。不要把打开了新标签或点击成功当作已保存文件。</p>
+  </section>
+
   <div id="tests"></div>
 
   <div class="panel">
@@ -237,6 +251,34 @@ function wireDownloadLab(){
  };
 }
 wireDownloadLab();
+
+function wireServiceWorkerLab(){
+ var status=$('swStatus');
+ function report(s){status.textContent=s;addLog('Service Worker：'+s);}
+ var sw=navigator.serviceWorker;
+ if(!sw){report('❌ 当前浏览器没有 navigator.serviceWorker。第二轮测试不可用。');}
+ else {
+   report('⏳ 正在注册下载实验 Service Worker……');
+   try{
+     sw.addEventListener('controllerchange',function(){report(sw.controller?'✅ Service Worker 已控制本页，可以测试⑨～⑫。':'⚠️ Service Worker 未控制本页，请刷新。');});
+     sw.register('./sw-download-worker.js',{scope:'./'}).then(function(reg){
+       report('✅ Service Worker 注册成功（状态：'+(reg.active?'active':reg.waiting?'waiting':'installing')+'）。'+(sw.controller?'已控制本页，可以测试。':'等待激活后刷新本页再测试。'));
+       return sw.ready;
+     }).then(function(){report(sw.controller?'✅ Service Worker 已准备就绪，可以测试⑨～⑫。':'⚠️ Service Worker 已激活，但尚未控制本页。请刷新页面再试。');})
+       .catch(function(err){report('❌ Service Worker 注册失败：'+String(err&&err.message||err));});
+   }catch(e){report('❌ Service Worker 初始化失败：'+String(e.message||e));}
+ }
+ var links=document.querySelectorAll('[data-sw-test]');
+ for(var i=0;i<links.length;i++){
+   links[i].addEventListener('click',function(e){
+     var name=this.getAttribute('data-sw-test');
+     if(!sw||!sw.controller){e.preventDefault();report('⚠️ '+name+'：Service Worker 尚未控制此页面，未发起请求。请刷新页面后重试。');return;}
+     start(name,this.href+' | SW synthetic Content-Disposition');
+   });
+ }
+}
+wireServiceWorkerLab();
+
 
 groupButtons();render();customSync();
 })();
