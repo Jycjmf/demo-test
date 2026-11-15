@@ -60,6 +60,26 @@
     <p class="small" id="count"></p>
   </div>
 
+
+  <section class="panel" id="downloadLab">
+    <h2>📥 车机浏览器 APK 下载限制实验室</h2>
+    <p class="hint">基于 Chromium Automotive MIME 类型拦截猜想；所有按钮均须手动点击。测试文件只是 SVG 文本，<strong>即使保存成 .apk 也不能安装</strong>。这些实验用于判断浏览器是否允许下载、是否受扩展名或 MIME 类型影响。</p>
+    <div class="notice"><strong>测试方法：</strong>依次点击下方按钮，观察是否出现“文件类型不支持”、下载提示或文件保存成功。测试后用页面底部“✅ 成功 / 🚫 阻止 / ❌ 无反应”标记结果，并复制日志。<br><strong>注意：</strong>GitHub Pages 是静态托管，前端不能设置服务器的 <code>Content-Type</code> / <code>Content-Disposition</code> 响应头；下面的 Blob MIME 与 HTTP 服务器 MIME 属于不同实验。</div>
+    <div class="cards" style="margin-top:14px">
+      <div class="card"><span class="kind">HTTP 对照</span><h3>① 直接打开 SVG</h3><div class="desc">真正的 HTTP 文件请求；由 GitHub Pages 决定 MIME 类型。</div><div class="cardbuttons"><a href="./download-probe.svg" class="testbtn" data-dl-test="HTTP 直接打开 SVG">▶ 打开 SVG</a></div></div>
+      <div class="card"><span class="kind">HTTP 对照</span><h3>② 直接打开 .apk 扩展名</h3><div class="desc">和①文件内容相同，扩展名不同；这不是可安装 APK。</div><div class="cardbuttons"><a href="./download-probe.apk" class="testbtn" data-dl-test="HTTP 直接打开 .apk 扩展名">▶ 请求 .apk</a></div></div>
+      <div class="card"><span class="kind">HTML download</span><h3>③ SVG 链接强制命名为 .apk</h3><div class="desc">同源 SVG 通过 &lt;a download&gt; 建议保存为 .apk；服务端 MIME 不变。</div><div class="cardbuttons"><a href="./download-probe.svg" download="zeekr-mime-svg.apk" class="testbtn" data-dl-test="HTML download: SVG -> .apk">▶ 下载 .apk</a></div></div>
+      <div class="card"><span class="kind">HTML download</span><h3>④ SVG 链接保存为 .png</h3><div class="desc">用支持的图片扩展名做对照；文件内容仍是 SVG。</div><div class="cardbuttons"><a href="./download-probe.svg" download="zeekr-mime-svg.png" class="testbtn" data-dl-test="HTML download: SVG -> .png">▶ 下载 .png</a></div></div>
+      <div class="card"><span class="kind">Blob API</span><h3>⑤ Blob 声明为 PNG，文件名 APK</h3><div class="desc">JavaScript 构造 type=image/png，建议保存为 .apk，测试 MIME 与后缀判断。</div><div class="cardbuttons"><button type="button" class="testbtn" data-blob-mime="image/png" data-blob-ext="apk">▶ Blob PNG → APK</button></div></div>
+      <div class="card"><span class="kind">Blob API</span><h3>⑥ Blob 声明为 APK，文件名 APK</h3><div class="desc">JavaScript 构造 APK MIME 的对照组，使用无害测试数据。</div><div class="cardbuttons"><button type="button" class="testbtn" data-blob-mime="application/vnd.android.package-archive" data-blob-ext="apk">▶ Blob APK → APK</button></div></div>
+      <div class="card"><span class="kind">Blob API</span><h3>⑦ Blob 声明为 TXT，文件名 APK</h3><div class="desc">检查 text/plain 能否触发 .apk 扩展名的下载。</div><div class="cardbuttons"><button type="button" class="testbtn" data-blob-mime="text/plain" data-blob-ext="apk">▶ Blob TXT → APK</button></div></div>
+      <div class="card"><span class="kind">Blob API</span><h3>⑧ Blob 声明为 PNG，文件名 PNG</h3><div class="desc">和⑤完全相同 MIME，唯一改变下载扩展名。</div><div class="cardbuttons"><button type="button" class="testbtn" data-blob-mime="image/png" data-blob-ext="png">▶ Blob PNG → PNG</button></div></div>
+    </div>
+    <div class="actions"><button type="button" id="probeHeaders">🔎 检测实际 HTTP Content-Type</button><button type="button" id="probeSupport">🧭 检测浏览器下载 API</button></div>
+    <p class="result" id="downloadLabResult" aria-live="polite">尚未检测。提示：浏览器 JavaScript 无法自动得知系统下载器是否真的保存了文件。</p>
+    <p class="hint">若你要验证“真正的 APK 字节 + 假 PNG HTTP 响应头”是否绕过拦截，需要一个能够自定义响应头的服务器；单靠 GitHub Pages 的 index.html 不能做这个严格实验。以上项目不修改车机或安装软件。</p>
+  </section>
+
   <div id="tests"></div>
 
   <div class="panel">
@@ -184,6 +204,40 @@ function customSync(){var s=$('customUri').value.trim();var link=$('customLink')
 $('customUri').oninput=customSync;
 $('customLink').onclick=function(){var u=$('customUri').value.trim();if(!/^(intent|market|tel|sms|mailto|geo|https?):/i.test(u))return false;start('自定义 URI',u);return true;};
 $('copyCustom').onclick=function(){copy($('customUri').value);};
+
+function downloadLabMessage(s){$('downloadLabResult').textContent=s;addLog('下载实验：'+s);}
+function wireDownloadLab(){
+ var anchors=document.querySelectorAll('[data-dl-test]');
+ for(var i=0;i<anchors.length;i++){anchors[i].addEventListener('click',function(){start(this.getAttribute('data-dl-test'),this.href+(this.download?' | download='+this.download:''));});}
+ var buttons=document.querySelectorAll('[data-blob-mime]');
+ for(var j=0;j<buttons.length;j++){buttons[j].addEventListener('click',function(){
+   var mime=this.getAttribute('data-blob-mime'),ext=this.getAttribute('data-blob-ext'),name='zeekr-blob-'+mime.replace(/[^a-z0-9]+/gi,'-')+'.'+ext;
+   start('Blob MIME='+mime+' / 文件名='+name,'blob:');
+   try{
+     var blob=new Blob(['Zeekr MIME download probe. This is not a real APK.\\n'],{type:mime});
+     var url=(window.URL||window.webkitURL).createObjectURL(blob);
+     var a=document.createElement('a');a.href=url;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();document.body.removeChild(a);
+     setTimeout(function(){(window.URL||window.webkitURL).revokeObjectURL(url);},30000);
+     downloadLabMessage('已发送 Blob 下载点击：'+name+'（type='+mime+'）。是否成功必须以车机实际行为为准。');
+   }catch(e){downloadLabMessage('Blob 报错：'+e.message);}
+ });}
+ $('probeHeaders').onclick=function(){
+   start('读取 GitHub Pages HTTP MIME 响应头','fetch ./download-probe.svg 和 ./download-probe.apk');
+   var files=['download-probe.svg','download-probe.apk'];var index=0;var results=[];
+   function next(){if(index===files.length){downloadLabMessage('HTTP Content-Type：'+results.join('；'));return;}
+     var file=files[index++];
+     if(!window.fetch){results.push(file+'：不支持 fetch');next();return;}
+     fetch('./'+file+'?mimeprobe='+Date.now(),{cache:'no-store'}).then(function(r){results.push(file+'：HTTP '+r.status+'，'+(r.headers.get('content-type')||'(未公开 Content-Type)'));next();}).catch(function(e){results.push(file+'：失败 '+e.message);next();});
+   }next();
+ };
+ $('probeSupport').onclick=function(){
+   var a=document.createElement('a');var blobSupport=!!window.Blob,objectSupport=!!(window.URL&&window.URL.createObjectURL);
+   var summary='UA='+navigator.userAgent+'；download 属性='+('download' in a)+'；Blob='+blobSupport+'；URL.createObjectURL='+objectSupport+'；fetch='+!!window.fetch;
+   start('检测浏览器下载 API','feature detection');downloadLabMessage(summary);
+ };
+}
+wireDownloadLab();
+
 groupButtons();render();customSync();
 })();
 </script>
