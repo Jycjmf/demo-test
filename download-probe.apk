@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="200" viewBox="0 0 720 200">
+  <rect width="720" height="200" fill="#0c1829"/>
+  <text x="36" y="76" fill="#73e2b0" font-size="28" font-family="Arial,sans-serif">Zeekr download MIME probe</text>
+  <text x="36" y="122" fill="#d2deef" font-size="18" font-family="Arial,sans-serif">Synthetic test fixture. Not an installable APK.</text>
+  <text x="36" y="152" fill="#d2deef" font-size="18" font-family="Arial,sans-serif">Used to distinguish server MIME and saved filename.</text>
+</svg>
